@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק הזוגות</title>
+    <style>
+        body {
+            direction: rtl;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #1a1a2e;
+            margin: 0;
+            padding: 0;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Israel.svg');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
+            background-blend-mode: multiply;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .game-container {
+            max-width: 900px;
+            width: 100%;
+            padding: 20px;
+            background-color: rgba(26, 26, 46, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+        .card {
+            border: none;
+            border-radius: 8px;
+            background-color: #16213e;
+            padding: 20px;
+            color: #e6e6e6;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+        .timer {
+            font-size: 2em;
+            margin: 20px 0;
+            color: #f0a500;
+        }
+        .question {
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .option {
+            background-color: #0f3460;
+            color: white;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 80%;
+            transition: background-color 0.3s;
+        }
+        .option:hover {
+            background-color: #e94560;
+        }
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            background-color: #0f3460;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .scoreboard div {
+            font-size: 1.2em;
+            color: #e6e6e6;
+        }
+        .name-inputs {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .name-inputs input {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: none;
+            width: 40%;
+            background-color: #e6e6e6;
+            color: #16213e;
+        }
+        .start-button, .new-game-button {
+            background-color: #f0a500;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: background-color 0.3s;
+        }
+        .start-button:hover, .new-game-button:hover {
+            background-color: #e94560;
+        }
+        #winnerContainer {
+            display: none;
+            color: #f0a500;
+            background-color: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+        }
+        #winnerContainer h2 {
+            margin: 0 0 10px;
+        }
+        #winnerContainer p {
+            margin: 0;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 style="color: #e6e6e6;">משחק הזוגות</h1>
+        <div class="name-inputs">
+            <input type="text" id="player1Name" placeholder="שם שחקן 1">
+            <input type="text" id="player2Name" placeholder="שם שחקן 2">
+            <button class="start-button" onclick="startGame()">התחל משחק</button>
+        </div>
+        <div class="card">
+            <div class="timer" id="timer">10</div>
+            <div class="question" id="question">באיזה חודש הפיל המן את הפור?</div>
+            <div class="options">
+                <div class="option" onclick="selectAnswer(this)" id="option1">ניסן</div>
+                <div class="option" onclick="selectAnswer(this)" id="option2">אדר</div>
+                <div class="option" onclick="selectAnswer(this)" id="option3">סיוון</div>
+                <div class="option" onclick="selectAnswer(this)" id="option4">כסלו</div>
+            </div>
+        </div>
+        <div class="scoreboard">
+            <div><span id="player1Display">שחקן 1</span>: <span id="score1">0</span></div>
+            <div><span id="player2Display">שחקן 2</span>: <span id="score2">0</span></div>
+        </div>
+        <div id="winnerContainer">
+            <h2>המנצח הוא:</h2>
+            <p id="winnerMessage"></p>
+            <button class="new-game-button" onclick="startNewGame()">משחק חדש</button>
+        </div>
+    </div>
+    <script>
+        const questions = [
+    {
+        question: "באיזה חודש הפיל המן את הפור?",
+        options: ["ניסן", "אדר", "סיוון", "כסלו"],
+        correctAnswer: "אדר"
+    },
+    {
+        question: "מהי בירת ישראל?",
+        options: ["תל אביב", "ירושלים", "חיפה", "באר שבע"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "מי היה המלך הראשון של ישראל?",
+        options: ["דוד", "שאול", "שלמה", "רחבעם"],
+        correctAnswer: "שאול"
+    },
+    {
+        question: "מהו הנהר הארוך ביותר בישראל?",
+        options: ["הירדן", "נחל קישון", "נחל אלכסנדר", "נחל פרת"],
+        correctAnswer: "הירדן"
+    },
+    {
+        question: "מי היו ההורים של יעקב?",
+        options: ["אברהם ושרה", "יצחק ורבקה", "יעקב ולאה", "רחל ויעקב"],
+        correctAnswer: "יצחק ורבקה"
+    },
+    {
+        question: "באיזה שנה הוקמה מדינת ישראל?",
+        options: ["1948", "1950", "1945", "1967"],
+        correctAnswer: "1948"
+    },
+    {
+        question: "מהי העיר השנייה בגודלה בישראל?",
+        options: ["ירושלים", "תל אביב", "חיפה", "ראשון לציון"],
+        correctAnswer: "תל אביב"
+    },
+    {
+        question: "באיזה ים שוכן קיבוץ עין גב?",
+        options: ["ים סוף", "ים התיכון", "ים כנרת", "ים המלח"],
+        correctAnswer: "ים כנרת"
+    },
+    {
+        question: "מי היה נביא השקר מול משה?",
+        options: ["קורח", "בלעם", "יתרו", "אהרון"],
+        correctAnswer: "בלעם"
+    },
+    {
+        question: "כמה שבטים היו לישראל?",
+        options: ["10", "11", "12", "13"],
+        correctAnswer: "12"
+    },
+    {
+        question: "איזו עיר נחרבה על ידי הרומאים?",
+        options: ["תל אביב", "ירושלים", "צפת", "טבריה"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "באיזה עידן היה שלמה המלך?",
+        options: ["עידן הברונזה", "עידן הברזל", "עידן האבן", "עידן הנחושת"],
+        correctAnswer: "עידן הברזל"
+    },
+    {
+        question: "באיזה מקום התחיל משה את מסעו עם בני ישראל?",
+        options: ["מצרים", "מדבר סיני", "הר סיני", "ירדן"],
+        correctAnswer: "מצרים"
+    },
+    {
+        question: "באיזה ספר בתנ\"ך מופיע הסיפור על דוד וגוליית?",
+        options: ["שמות", "יהושע", "שמואל א'", "מלכים"],
+        correctAnswer: "שמואל א'"
+    },
+    {
+        question: "מהי השפה הרשמית השנייה של מדינת ישראל?",
+        options: ["אנגלית", "רוסית", "ערבית", "צרפתית"],
+        correctAnswer: "ערבית"
+    },
+    {
+        question: "איזה חיה שלח נח מהתיבה לבדוק אם יש יבשה?",
+        options: ["יונה", "עורב", "נשר", "יונה ועורב"],
+        correctAnswer: "יונה ועורב"
+    },
+    {
+        question: "מי היה הבן הראשון של אברהם?",
+        options: ["יצחק", "ישמעאל", "יעקב", "עזרא"],
+        correctAnswer: "ישמעאל"
+    },
+    {
+        question: "מי בנה את בית המקדש הראשון?",
+        options: ["דוד המלך", "שאול המלך", "שלמה המלך", "רחבעם"],
+        correctAnswer: "שלמה המלך"
+    },
+    {
+        question: "באיזה עיר התקיים משפט שלמה?",
+        options: ["ירושלים", "חברון", "שכם", "בית לחם"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "מי היה אביו של יוסף?",
+        options: ["יעקב", "יצחק", "אברהם", "רחל"],
+        correctAnswer: "יעקב"
+    },
+    {
+        question: "מהו השם המקראי של מדינת ישראל?",
+        options: ["כנען", "יהודה", "ישראל", "עבר"],
+        correctAnswer: "כנען"
+    },
+    {
+        question: "באיזו שנה נוסדה תל אביב?",
+        options: ["1909", "1917", "1921", "1936"],
+        correctAnswer: "1909"
+    },
+    {
+        question: "מי היו ההורים של שמשון הגיבור?",
+        options: ["מנוח ואשתו", "משה וציפורה", "אהרן ומרים", "יצחק ורבקה"],
+        correctAnswer: "מנוח ואשתו"
+    },
+    {
+        question: "איזה ים נחשב כים המלח?",
+        options: ["ים סוף", "ים כנרת", "הים התיכון", "ים המלח"],
+        correctAnswer: "ים המלח"
+    },
+    {
+        question: "מי היה הנביא שברח מתשובת אלוהים?",
+        options: ["יונה", "ישעיהו", "יחזקאל", "עמוס"],
+        correctAnswer: "יונה"
+    },
+    {
+        question: "מה היה שמו של המלך שנחשב לחכם ביותר בישראל?",
+        options: ["דוד", "שלמה", "שאול", "רחבעם"],
+        correctAnswer: "שלמה"
+    },
+    {
+        question: "מהי שפת הקודש בתנ\"ך?",
+        options: ["עברית", "ארמית", "יוונית", "לטינית"],
+        correctAnswer: "עברית"
+    },
+    {
+        question: "באיזו עיר מת יעקב?",
+        options: ["מצרים", "שכם", "חברון", "בית אל"],
+        correctAnswer: "מצרים"
+    },
+    {
+        question: "איזה כלי נגינה היה לדוד המלך?",
+        options: ["נבל", "חליל", "תוף", "כינור"],
+        correctAnswer: "נבל"
+    },
+    {
+        question: "מי קיבל את עשרת הדיברות?",
+        options: ["משה", "אברהם", "ישוע", "דוד"],
+        correctAnswer: "משה"
+    },
+    {
+        question: "מהי העיר הכי דרומית בישראל?",
+        options: ["אילת", "באר שבע", "ירושלים", "אשקלון"],
+        correctAnswer: "אילת"
+    },
+    {
+        question: "באיזו עיר יש הכי הרבה אוכלוסייה בישראל?",
+        options: ["תל אביב", "ירושלים", "חיפה", "באר שבע"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "איזה אזור בישראל נחשב למדברי ביותר?",
+        options: ["נגב", "גליל", "שפלה", "עמק הירדן"],
+        correctAnswer: "נגב"
+    },
+    {
+        question: "מהו הכינוי שניתן לשוק מחנה יהודה בירושלים?",
+        options: ["השוק", "שוק הפשפשים", "השוק הגדול", "שוק הבירה"],
+        correctAnswer: "השוק"
+    },
+    {
+        question: "איזה חג יהודי חוגגים לזכר נס חנוכה?",
+        options: ["סוכות", "פסח", "חנוכה", "פורים"],
+        correctAnswer: "חנוכה"
+    },
+    {
+        question: "איזו חיה נחשבת לנדירה בישראל?",
+        options: ["נמר", "זאב", "חמור בר", "גמל"],
+        correctAnswer: "נמר"
+    },
+    {
+        question: "איזה יישוב בישראל מפורסם בחוף הצדפים שלו?",
+        options: ["חיפה", "תל אביב", "הרצליה", "אילת"],
+        correctAnswer: "הרצליה"
+    },
+    {
+        question: "מהי המילה בעברית ל'טרקטורון'?",
+        options: ["טרקטור", "מכונית", "רכב שטח", "חולון"],
+        correctAnswer: "רכב שטח"
+    },
+    {
+        question: "איזה פרי מכיל הכי הרבה ויטמין C?",
+        options: ["תפוז", "לימון", "אננס", "קיווי"],
+        correctAnswer: "קיווי"
+    },
+    {
+        question: "באיזה אזור בישראל נמצא הר החרמון?",
+        options: ["נגב", "גליל", "גולן", "שומרון"],
+        correctAnswer: "גולן"
+    },
+    {
+        question: "מי היה ראש הממשלה הראשון של ישראל?",
+        options: ["דוד בן גוריון", "מנחם בגין", "יצחק רבין", "גולדה מאיר"],
+        correctAnswer: "דוד בן גוריון"
+    },
+    {
+        question: "באיזו שנה נפתחה אוניברסיטת תל אביב?",
+        options: ["1956", "1964", "1971", "1982"],
+        correctAnswer: "1956"
+    },
+    {
+        question: "איזה נחל זורם בתל אביב?",
+        options: ["ירקון", "אלכסנדר", "קישון", "שניר"],
+        correctAnswer: "ירקון"
+    },
+    {
+        question: "מהי העיר הגדולה ביותר בצפון ישראל?",
+        options: ["חיפה", "טבריה", "עכו", "נצרת"],
+        correctAnswer: "חיפה"
+    },
+    {
+        question: "איזה עץ מופיע בסמל המדינה של ישראל?",
+        options: ["זית", "דקל", "אלון", "ברוש"],
+        correctAnswer: "זית"
+    },
+    {
+        question: "באיזה בית כנסת נמצא קבר רבי שמעון בר יוחאי?",
+        options: ["מירון", "צפת", "טבריה", "חיפה"],
+        correctAnswer: "מירון"
+    },
+    {
+        question: "מהו השיר הלאומי של ישראל?",
+        options: ["התקווה", "שיר לשלום", "ירושלים של זהב", "אני ואתה"],
+        correctAnswer: "התקווה"
+    },
+    {
+        question: "איזו עיר מכונה 'עיר הבירה הכלכלית' של ישראל?",
+        options: ["תל אביב", "חיפה", "אשדוד", "באר שבע"],
+        correctAnswer: "תל אביב"
+    },
+    {
+        question: "איזה מוזיאון מפורסם נמצא בירושלים?",
+        options: ["מוזיאון ישראל", "מוזיאון תל אביב", "מוזיאון המדע", "מוזיאון השואה"],
+        correctAnswer: "מוזיאון ישראל"
+    },
+    {
+        question: "באיזו שנה החלה מלחמת ששת הימים?",
+        options: ["1967", "1973", "1948", "1956"],
+        correctAnswer: "1967"
+    },
+    {
+        question: "מי נחשב ל'מלך החיות'?",
+        options: ["נמר", "דוב", "אריה", "פיל"],
+        correctAnswer: "אריה"
+    },
+    {
+        question: "איזה פרח הוא סמלה של ירושלים?",
+        options: ["חבצלת", "שושן", "כלנית", "אירוס"],
+        correctAnswer: "שושן"
+    },
+    {
+        question: "איזה חודש עברי נחשב לראש השנה העברי?",
+        options: ["ניסן", "תשרי", "חשוון", "אלול"],
+        correctAnswer: "תשרי"
+    },
+    {
+        question: "מי היה מנהיג מרד בר כוכבא?",
+        options: ["בר כוכבא", "אלעזר בן יאיר", "מתתיהו החשמונאי", "בר גיורא"],
+        correctAnswer: "בר כוכבא"
+    },
+    {
+        question: "מהו מאכל ישראלי מסורתי שנאכל בשבועות?",
+        options: ["קוסקוס", "חמין", "לחם", "גבינה"],
+        correctAnswer: "גבינה"
+    },
+    {
+        question: "איזה כותב ישראלי ידוע בזכות ספריו על השואה?",
+        options: ["עמוס עוז", "א.ב. יהושע", "אלי ויזל", "שולמית הראבן"],
+        correctAnswer: "אלי ויזל"
+    },
+    {
+        question: "באיזו עיר ישראלית נמצא הנמל הגדול ביותר?",
+        options: ["אשדוד", "חיפה", "תל אביב", "אילת"],
+        correctAnswer: "חיפה"
+    },
+    {
+        question: "באיזו שנה הכריז בן גוריון על הקמת מדינת ישראל?",
+        options: ["1948", "1947", "1950", "1949"],
+        correctAnswer: "1948"
+    },
+    {
+        question: "איזו עיר מכונה 'עיר הקודש'?",
+        options: ["ירושלים", "תל אביב", "צפת", "חברון"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "מהו הנהר הקצר ביותר בישראל?",
+        options: ["נחל הירקון", "נחל תנינים", "נחל איילון", "נחל דן"],
+        correctAnswer: "נחל דן"
+    },
+    {
+        question: "איזו עיר נחשבת לעיר היהודית העתיקה בעולם?",
+        options: ["חברון", "ירושלים", "צפת", "בית לחם"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "איזו עיר נקראת 'עיר הזהב'?",
+        options: ["חיפה", "ירושלים", "אילת", "באר שבע"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "איזה עיתון ישראלי היה הראשון שהוקם בארץ?",
+        options: ["מעריב", "הארץ", "ידיעות אחרונות", "על המשמר"],
+        correctAnswer: "הארץ"
+    },
+    {
+        question: "איזה חיה נחשבת ל'חיית המדבר'?",
+        options: ["שועל", "נשר", "גמל", "זאב"],
+        correctAnswer: "גמל"
+    },
+    {
+        question: "מהו שמו של הים שבו נמצא החרמון?",
+        options: ["ים המלח", "ים כנרת", "הים התיכון", "ים סוף"],
+        correctAnswer: "ים כנרת"
+    },
+    {
+        question: "איזה פרי נחשב לסמל העיר ראשון לציון?",
+        options: ["ענבים", "תפוחים", "תאנים", "שקדים"],
+        correctAnswer: "ענבים"
+    },
+    {
+        question: "באיזו עיר נולד דוד בן גוריון?",
+        options: ["ירושלים", "תל אביב", "פלונסק", "חיפה"],
+        correctAnswer: "פלונסק"
+    },
+    {
+        question: "איזה עיר מכונה 'עיר האור'?",
+        options: ["חיפה", "תל אביב", "צפת", "באר שבע"],
+        correctAnswer: "תל אביב"
+    },
+    {
+        question: "מהו שמה של מערת הקבורה של האבות?",
+        options: ["מערת המכפלה", "מערת אליהו", "מערת צדקיהו", "מערת אברהם"],
+        correctAnswer: "מערת המכפלה"
+    },
+    {
+        question: "איזו עיר בישראל ידועה בתעשיית היין שלה?",
+        options: ["זכרון יעקב", "רחובות", "בית שמש", "עפולה"],
+        correctAnswer: "זכרון יעקב"
+    },
+    {
+        question: "מי כתב את המנון המדינה?",
+        options: ["חיים נחמן ביאליק", "אברהם שלונסקי", "נפתלי הרץ אימבר", "יונתן גפן"],
+        correctAnswer: "נפתלי הרץ אימבר"
+    },
+    {
+        question: "מהי העיר הגדולה ביותר במרכז הארץ?",
+        options: ["תל אביב", "ראשון לציון", "פתח תקווה", "רמת גן"],
+        correctAnswer: "תל אביב"
+    },
+    {
+        question: "איזו חיה נחשבת לחיית המים?",
+        options: ["דולפין", "לוויתן", "תנין", "כריש"],
+        correctAnswer: "דולפין"
+    },
+    {
+        question: "מהי העיר שנקראת גם 'עיר דוד'?",
+        options: ["ירושלים", "חברון", "בית לחם", "שכם"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "איזו עיר היא הבירה הכלכלית של ישראל?",
+        options: ["ירושלים", "תל אביב", "חיפה", "באר שבע"],
+        correctAnswer: "תל אביב"
+    },
+    {
+        question: "איזה נהר זורם לאורך כל גבול ישראל-ירדן?",
+        options: ["נחל הירדן", "נחל אלכסנדר", "נחל קישון", "נחל שניר"],
+        correctAnswer: "נחל הירדן"
+    },
+    {
+        question: "איזה אתר נחשב לאתר ההיסטורי ביותר בישראל?",
+        options: ["מצדה", "עכו", "קיסריה", "ירושלים"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "באיזו שנה נבנתה חומת ירושלים?",
+        options: ["1538", "1642", "1750", "1836"],
+        correctAnswer: "1538"
+    },
+    {
+        question: "מהי העיר שנחשבת לעיר הקודש לנוצרים?",
+        options: ["ירושלים", "נצר", "בית לחם", "צפת"],
+        correctAnswer: "בית לחם"
+    },
+    {
+        question: "איזה צבע יש בדגל ישראל?",
+        options: ["כחול ולבן", "אדום ולבן", "ירוק ולבן", "צהוב ולבן"],
+        correctAnswer: "כחול ולבן"
+    },
+    {
+        question: "איזה מקום נחשב לים הנמוך ביותר בעולם?",
+        options: ["ים כנרת", "ים סוף", "ים התיכון", "ים המלח"],
+        correctAnswer: "ים המלח"
+    },
+    {
+        question: "מהו החודש העברי בו חל יום הכיפורים?",
+        options: ["תשרי", "אלול", "ניסן", "אב"],
+        correctAnswer: "תשרי"
+    },
+    {
+        question: "מהו הים בו שוכנת העיר אילת?",
+        options: ["ים סוף", "ים התיכון", "ים כנרת", "ים המלח"],
+        correctAnswer: "ים סוף"
+    },
+    {
+        question: "איזו עיר נחשבת לעיר המקלט הראשונה בישראל?",
+        options: ["ערד", "חברון", "בית שמש", "צפת"],
+        correctAnswer: "צפת"
+    },
+    {
+        question: "איזה אתר נחשב לאתר העתיקות הגדול בישראל?",
+        options: ["בית שאן", "קיסריה", "ירושלים", "עכו"],
+        correctAnswer: "קיסריה"
+    },
+    {
+        question: "איזה כלי רכב נחשב ל'מכונית הלאומית' בישראל?",
+        options: ["סוסיתא", "חיפושית", "פיאט 500", "טרנטה"],
+        correctAnswer: "סוסיתא"
+    },
+    {
+        question: "מהו העץ המופיע בסמל צה\"ל?",
+        options: ["זית", "אלון", "תמר", "ברוש"],
+        correctAnswer: "זית"
+    },
+    {
+        question: "איזה חג יהודי חוגגים לזכר סוכות?",
+        options: ["חג הסוכות", "חנוכה", "שבועות", "פורים"],
+        correctAnswer: "חג הסוכות"
+    },
+    {
+        question: "איזו עיר נקראת 'עיר המלכים'?",
+        options: ["ירושלים", "חברון", "טבריה", "צפת"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "מהו השם הערבי של ירושלים?",
+        options: ["אל-קודס", "אל-מדינה", "דמשק", "חלב"],
+        correctAnswer: "אל-קודס"
+    },
+    {
+        question: "באיזו שנה נכבשה ירושלים המזרחית?",
+        options: ["1967", "1973", "1948", "1956"],
+        correctAnswer: "1967"
+    },
+    {
+        question: "איזו עיר בישראל נחשבת לעיר השלום?",
+        options: ["תל אביב", "חיפה", "ירושלים", "בית לחם"],
+        correctAnswer: "ירושלים"
+    },
+    {
+        question: "מהו המקום הנמוך ביותר על פני כדור הארץ?",
+        options: ["העיר הערבית רבת", "עמק הירדן", "ים המלח", "הר עוזי"],
+        correctAnswer: "ים המלח"
+    },
+    {
+        question: "איזה נהר חוצה את תל אביב?",
+        options: ["ירקון", "אלכסנדר", "קישון", "שניר"],
+        correctAnswer: "ירקון"
+    },
+    {
+        question: "איזה חיה נחשבת ל'סמל המדבר'?",
+        options: ["גמל", "זאב", "נשר", "שועל"],
+        correctAnswer: "גמל"
+    },
+    {
+        question: "באיזו עיר התקיימה המרידה הגדולה נגד הרומאים?",
+        options: ["ירושלים", "מצדה", "עכו", "חיפה"],
+        correctAnswer: "מצדה"
+    },
+    {
+        question: "מהי העיר היהודית הראשונה שנבנתה במודרניות?",
+        options: ["תל אביב", "ראשון לציון", "פתח תקווה", "זכרון יעקב"],
+        correctAnswer: "פתח תקווה"
+    },
+    {
+        question: "מהו השם הערבי של תל אביב?",
+        options: ["יאפא", "חיפה", "ירושלים", "עזה"],
+        correctAnswer: "יאפא"
+    },
+    {
+        question: "איזה יישוב בישראל מפורסם בזכות גידול הזיתים שלו?",
+        options: ["עכו", "ירכא", "נצרת", "כפר קנא"],
+        correctAnswer: "ירכא"
+    },
+    {
+        question: "מהו הגבול הדרומי של ישראל?",
+        options: ["מצרים", "ירדן", "סוריה", "לבנון"],
+        correctAnswer: "מצרים"
+    },
+    {
+        question: "מהי החיה המסמלת את תל אביב?",
+        options: ["חתול", "כלב", "יונה", "גמל"],
+        correctAnswer: "חתול"
+    },
+    {
+        question: "באיזו שנה הוכרזה מדינת ישראל באו\"ם?",
+        options: ["1947", "1948", "1949", "1950"],
+        correctAnswer: "1947"
+    }
+];
+
+        const prizes = [
+            "על המפסיד להכין משהו טעים למי שניצח",
+            "על המפסיד לפנק את מי שניצח ב5 דקות מסאג",
+            "על המפסיד להכין ארוחה זוגית בקרוב",
+            "על המספיד להפתיע את מי שניצח במשהו נחמד השבוע",
+            "על המפסיד להכין למי שניצח קפה / תה / אייס / גלידה - מה שהמנצח בוחר",
+            "על המפסיד לקחת אחריות על שטיפת הכלים היום",
+            "על המפסיד לקחת אחריות על הכביסות היום",
+            "על המפסיד להקפיד היום על פרגונים למי שניצח"
+        ];
+
+        let player1Score = 0;
+        let player2Score = 0;
+        let currentPlayer = 1;
+        let timer = 10;
+        let interval;
+        let availableQuestions = [...questions]; // Copy of all questions for unique selection
+
+        function startGame() {
+            const player1Name = document.getElementById('player1Name').value.trim();
+            const player2Name = document.getElementById('player2Name').value.trim();
+
+            if (!player1Name || !player2Name) {
+                alert("נא להזין שמות לכל השחקנים.");
+                return;
+            }
+
+            document.getElementById('player1Display').innerText = player1Name;
+            document.getElementById('player2Display').innerText = player2Name;
+            document.querySelector('.name-inputs').style.display = 'none';
+            document.querySelector('.card').style.display = 'block';
+
+            currentQuestionIndex = Math.floor(Math.random() * availableQuestions.length);
+            displayQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            interval = setInterval(() => {
+                if (timer > 0) {
+                    timer--;
+                    document.getElementById('timer').innerText = timer;
+                } else {
+                    clearInterval(interval);
+                    alert('הזמן אזל!');
+                    switchPlayer();
+                }
+            }, 1000);
+        }
+
+        function selectAnswer(element) {
+            clearInterval(interval);
+            const currentQuestion = availableQuestions[currentQuestionIndex];
+            if (element.innerText === currentQuestion.correctAnswer) {
+                alert('תשובה נכונה!');
+                if (currentPlayer === 1) {
+                    player1Score++;
+                    document.getElementById('score1').innerText = player1Score;
+                    if (player1Score === 10) {
+                        endGame(document.getElementById('player1Display').innerText || "שחקן 1");
+                        return;
+                    }
+                } else {
+                    player2Score++;
+                    document.getElementById('score2').innerText = player2Score;
+                    if (player2Score === 10) {
+                        endGame(document.getElementById('player2Display').innerText || "שחקן 2");
+                        return;
+                    }
+                }
+            } else {
+                alert('תשובה שגויה!');
+            }
+            switchPlayer();
+        }
+
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            timer = 10;
+            document.getElementById('timer').innerText = timer;
+            availableQuestions.splice(currentQuestionIndex, 1); // Remove current question from list
+            if (availableQuestions.length === 0) {
+                alert('כל השאלות הסתיימו!');
+                return;
+            }
+            currentQuestionIndex = Math.floor(Math.random() * availableQuestions.length);
+            displayQuestion();
+            startTimer();
+        }
+
+        function displayQuestion() {
+            const currentQuestion = availableQuestions[currentQuestionIndex];
+            document.getElementById('question').innerText = currentQuestion.question;
+            document.getElementById('option1').innerText = currentQuestion.options[0];
+            document.getElementById('option2').innerText = currentQuestion.options[1];
+            document.getElementById('option3').innerText = currentQuestion.options[2];
+            document.getElementById('option4').innerText = currentQuestion.options[3];
+        }
+
+        function endGame(winner) {
+            const prize = prizes[Math.floor(Math.random() * prizes.length)];
+            document.getElementById('winnerMessage').innerText = `${winner} ניצח! ${prize}`;
+            document.getElementById('winnerContainer').style.display = 'block';
+            document.querySelector('.card').style.display = 'none'; // Hide questions card
+        }
+
+        function startNewGame() {
+            resetGame();
+        }
+
+        function resetGame() {
+            player1Score = 0;
+            player2Score = 0;
+            document.getElementById('score1').innerText = player1Score;
+            document.getElementById('score2').innerText = player2Score;
+            document.querySelector('.name-inputs').style.display = 'flex';
+            document.querySelector('.card').style.display = 'none';
+            document.getElementById('winnerContainer').style.display = 'none'; // Reset winner container
+            timer = 10;
+            availableQuestions = [...questions]; // Reset questions
+        }
+
+        let currentQuestionIndex = Math.floor(Math.random() * availableQuestions.length);
+    </script>
+</body>
+</html>
